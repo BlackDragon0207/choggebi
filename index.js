@@ -14,7 +14,8 @@ const statuses = [
     '초하!',
 ];
 
-const logChannelId = '로그 채널 ID를 입력하세요'; // 로그를 보낼 채널 ID
+const logChannelId = '1302472407419850862'; // 로그를 보낼 채널 ID
+const allowedGuildId = '616279871567691792'; // 특정 서버 ID
 
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -31,14 +32,12 @@ client.once('ready', async () => {
         index = (index + 1) % statuses.length; // 인덱스가 상태 메시지 배열의 길이를 초과하지 않도록
     }, 10000); // 10초마다 상태 메시지 변경
 
-    // 서버 ID 입력
-    const guildId = '616279871567691792'; // 여기에 서버 ID를 입력하세요
-    const guild = client.guilds.cache.get(guildId);
-
+    // 서버 ID 확인 후 닉네임 변경 실행
+    const guild = client.guilds.cache.get(allowedGuildId);
     if (guild) {
         await setNicknamesForMembers(guild);
     } else {
-        console.error('서버를 찾을 수 없습니다.');
+        console.error('지정된 서버를 찾을 수 없습니다.');
     }
 });
 
@@ -62,7 +61,7 @@ function hasExcludedRole(member) {
 
 // 로그 채널에 Embed 메시지 보내기
 async function sendLogEmbed(member, previousNickname, newNickname) {
-    const logChannel = client.channels.cache.get('1302472407419850862');
+    const logChannel = client.channels.cache.get(logChannelId);
     if (logChannel) {
         const embed = new EmbedBuilder()
             .setColor('#0099ff')
@@ -78,8 +77,9 @@ async function sendLogEmbed(member, previousNickname, newNickname) {
 
 // 접속한 사용자 및 기존 사용자 닉네임 변경
 async function setNicknamesForMembers(guild) {
-    const members = await guild.members.fetch();
+    if (guild.id !== allowedGuildId) return; // 특정 서버가 아니면 실행하지 않음
 
+    const members = await guild.members.fetch();
     members.forEach(member => {
         if (!member.user.bot && !hasExcludedRole(member) && !/^\d{6}$/.test(member.nickname)) {
             const previousNickname = member.nickname || member.user.username; // 이전 닉네임
@@ -94,6 +94,8 @@ async function setNicknamesForMembers(guild) {
 
 // 새로운 사용자가 접속하면 닉네임 변경
 client.on('guildMemberAdd', member => {
+    if (member.guild.id !== allowedGuildId) return; // 특정 서버가 아니면 실행하지 않음
+
     if (!member.user.bot && !hasExcludedRole(member) && !/^\d{6}$/.test(member.nickname)) {
         const previousNickname = member.nickname || member.user.username; // 이전 닉네임
         const newNickname = generateUniqueNickname();
